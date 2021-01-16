@@ -1,10 +1,7 @@
 Acknowledgment 
     I am pleased to acknowledge Prof.Keith O’Hara for his invaluable guidance during the course of this project work. 
 
-   I am grateful to other members of the Bard Computer Science Program, students and faculties, who co-operated with us regarding some issues. 
-
-
-   Last but not least, we want to thank stemkoski from GitHub who created an awesome example of the application of Three.js in augmented reality that served as an essential building block for my project.
+   I want to thank stemkoski on GitHub who created an awesome example of various applications of Three.js in augmented reality that served as a useful tool.
 
 April, May, 2019
 

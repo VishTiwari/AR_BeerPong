@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<head>
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<title>Hello, world!</title>
+	<script src='js/three.js'></script>
+	<script src='js/keyboard.js'></script>
+	<script src='js/dat.gui.min.js'></script>
+	<script src="jsartoolkit5/artoolkit.min.js"></script>
+	<script src="jsartoolkit5/artoolkit.api.js"></script>
+	<script src="threex/threex-artoolkitsource.js"></script>
+	<script src="threex/threex-artoolkitcontext.js"></script>
+	<script src="threex/threex-arbasecontrols.js"></script>
+	<script src="threex/threex-armarkercontrols.js"></script>
+	<script src="https://aframe.io/releases/0.6.1/aframe.min.js"></script>
+
+</head>
+
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+
+<!-- 
+  Example created by Lee Stemkoski: https://github.com/stemkoski
+  Based on the AR.js library and examples created by Jerome Etienne: https://github.com/jeromeetienne/AR.js/
+-->
+
+
+<script>
+
+	var scene, camera, renderer, clock, deltaTime, totalTime;
+
+	var arToolkitSource, arToolkitContext;
+
+	var markerRoot1, markerRoot3;
+
+	var material1, mesh1;
+
+	var cylinderMeshExt = [], cylinderMeshExt1 = [];
+
+	var cubePositions1,cubePositions;
+
+	var powerB, angleB, powerR, angleR;
+
+	var blueArr =[true,true,true,true,true,true];
+
+	var redArr =[true,true,true,true,true,true];
+
+	var smallR=0, smallB=0;
+
+	var options = {
+		velx: 1,
+		vely: 1,
+		velx1: 1,
+		vely1: 1,
+	};
+
+
+	let sceneGroup1 = new THREE.Group();
+	let sceneGroup2 = new THREE.Group();
+
+	cubePositions1 = [  
+	new THREE.Vector3(-1.25,0.5/2,1),
+	new THREE.Vector3(-0.75,0.5/2,1.5), 
+	new THREE.Vector3(-0.75,0.5/2,0.5), 
+	new THREE.Vector3(-0.25,0.5/2,2),
+	new THREE.Vector3(-0.25,0.5/2,1),
+	new THREE.Vector3(-0.25,0.5/2,0),
+	];
+
+	cubePositions = [ 
+	new THREE.Vector3(0.75,0.5/2,1),
+	new THREE.Vector3(0.25,0.5/2,1.5), 
+	new THREE.Vector3(0.25,0.5/2,0.5),
+	new THREE.Vector3(-0.25,0.5/2,2), 
+	new THREE.Vector3(-0.25,0.5/2,1),
+	new THREE.Vector3(-0.25,0.5/2,0),
+
+	];
+
+
+	initialize();
+	animate();
+
+	function initialize()
+	{
+		scene = new THREE.Scene();
+
+		camera = new THREE.Camera();
+		scene.add(camera);
+		keyboard = new Keyboard();
+
+		renderer = new THREE.WebGLRenderer({
+			antialias : true,
+			alpha: true
+		});
+		renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+		renderer.setSize( 640, 480 );
+		renderer.domElement.style.position = 'absolute'
+		renderer.domElement.style.top = '0px'
+		renderer.domElement.style.left = '0px'
+		document.body.appendChild( renderer.domElement );
+
+		clock = new THREE.Clock();
+		deltaTime = 0;
+		totalTime = 0;
+
+	arToolkitSource = new THREEx.ArToolkitSource({
+		sourceType : 'webcam',
+	});
+
+	function onResize(){
+		arToolkitSource.onResize()	
+		arToolkitSource.copySizeTo(renderer.domElement)	
+		if ( arToolkitContext.arController !== null )
+		{
+			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)	
+		}	
+	}
+	arToolkitSource.init(function onReady(){
+		onResize()
+	});
+	
+	// handle resize event
+	window.addEventListener('resize', function(){
+		onResize()
+	});
+	
+
+	// create atToolkitContext
+	arToolkitContext = new THREEx.ArToolkitContext({
+		cameraParametersUrl: 'data/camera_para.dat',
+		detectionMode: 'mono'
+	});
+	
+	// copy projection matrix to camera when initialization complete
+	arToolkitContext.init( function onCompleted(){
+		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+	});
+
+
+	// build markerControls
+	markerRootA = new THREE.Group();
+	scene.add(markerRootA);
+	let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRootA, {
+		type: 'pattern', patternUrl: "data/hiro.patt",
+	});
+	
+	markerRootB = new THREE.Group();
+	scene.add(markerRootB);
+	let markerControls2 = new THREEx.ArMarkerControls(arToolkitContext, markerRootB, {
+		type: 'pattern', patternUrl: "data/kanji.patt",
+	});
+	
+	renderer.shadowMap.enabled = false;
+	//renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+	sceneGroup = new THREE.Group();
+	markerRootA.add(sceneGroup);
+	let loader = new THREE.TextureLoader();
+	
+	let floorGeometry = new THREE.PlaneGeometry( 20,20 );
+	let floorMaterial = new THREE.ShadowMaterial();
+	floorMaterial.opacity = 0.3;
+	let floorMesh = new THREE.Mesh( floorGeometry, floorMaterial );
+	floorMesh.rotation.x = -Math.PI/2;
+	floorMesh.receiveShadow = false;
+	sceneGroup.add( floorMesh );
+	
+	ballMesh = new THREE.Mesh(
+		new THREE.SphereGeometry(0.25, 32, 32),
+		new THREE.MeshBasicMaterial( 
+			{map: loader.load("images/basketball.png"),
+				color: 0xf4ae22}),);
+	// ballMesh.castShadow = false;
+	scene.add( ballMesh );
+	
+	// default normal of a plane is 0,0,1. Apply mesh rotation to it.
+	let clipPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+		new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0) );
+	renderer.clippingPlanes = [clipPlane];
+
+//FOR LETTER (A)
+drawSixA();
+
+	//For cups (B)
+	drawSixB();
+	//GUI OPTIONS (add to mesh creation area)
+
+
+
+
+}
+function render1 () {
+
+	requestAnimationFrame(render1);
+
+	powerR = options.velx;
+	angleR = options.vely;
+	powerB = options.velx1;
+	angleB = options.vely1;
+
+	renderer.render(scene, camera);
+
+};
+
+function drawSixA(){
+	markerRoot = new THREE.Group();
+	scene.add(markerRoot);
+	let markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+		type: 'pattern', patternUrl: "data/letterA.patt",
+	})
+
+
+	markerRoot.add(sceneGroup1);
+
+	cylinderMeshArrayExt = [];
+	cylinderMeshArrayInt = [];
+
+
+	let loader1 = new THREE.TextureLoader();
+	let texture1 = loader1.load('images/border.png')
+
+	for (let n = 0; n < 6; n++)
+	{
+		cylinderMeshExt[n] = new THREE.Mesh(
+			new THREE.CylinderGeometry(0.75/2, 0.5/2, 2/2, 64/2, 1/2, true),
+			new THREE.MeshBasicMaterial({ 
+				color: 0xff0000,
+				opacity:0.75,
+				transparent:true,
+				map:texture1,		
+				side: THREE.DoubleSide
+			})
+			);
+		let cylinderMeshInt = new THREE.Mesh(
+			new THREE.CylinderGeometry(0.65/2, 0.45/2, 1/2, 64/2, 1/2, false),
+			new THREE.MeshBasicMaterial({ 
+				color: 0xf2c75c,
+				opacity:0.5,
+				transparent:true,
+				map:texture1,		
+				side: THREE.DoubleSide
+			})
+			);
+
+		cylinderMeshExt[n].position.copy(cubePositions[n]);
+		cylinderMeshInt.position.copy(cubePositions[n]);
+		
+		cylinderMeshExt[n].castShadow = false;
+		sceneGroup1.add( cylinderMeshExt[n] );
+		sceneGroup1.add( cylinderMeshInt );
+
+		cylinderMeshArrayExt[n] = cylinderMeshExt[n];
+		cylinderMeshArrayInt[n] = cylinderMeshInt;
+	}
+
+	var gui = new dat.GUI();
+
+//var cam = gui.addFolder('Camera');
+gui.open();
+
+var velocity = gui.addFolder('Control for Red');
+velocity.add(options, 'velx', 0, 2.5).name('PowerR').listen();
+velocity.add(options, 'vely', -0.6, 1.5).name('AngleR').listen();
+velocity.open();
+var velocity1 = gui.addFolder('Control for Blue');
+velocity1.add(options, 'velx1', 0, 2.5).name('PowerB').listen();
+velocity1.add(options, 'vely1', -0.6, 1.5).name('AngleB').listen();
+velocity1.open();
+
+render1();
+}
+
+
+
+
+function drawSixB(){
+	markerRoot1 = new THREE.Group();
+	scene.add(markerRoot1);
+	let markerControls3 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
+		type: 'pattern', patternUrl: "data/letterB.patt",
+	})
+
+	
+	markerRoot1.add(sceneGroup2);
+	
+
+	cylinderMeshArrayExt1 = [];
+	cylinderMeshArrayInt1 = [];
+
+
+	let loader2 = new THREE.TextureLoader();
+	let texture2 = loader2.load('images/border.png')
+
+	for (let n1 = 0; n1 < 6; n1++)
+	{
+
+		cylinderMeshExt1[n1] = new THREE.Mesh(
+			new THREE.CylinderGeometry(0.75/2, 0.5/2, 2/2, 64/2, 1/2, true),
+			new THREE.MeshBasicMaterial({ 
+				color: 0x0000ff,
+				opacity:0.75,
+				transparent:true,
+				map:texture2,		
+				side: THREE.DoubleSide
+			})
+			);
+
+
+		let cylinderMeshInt1 = new THREE.Mesh(
+			new THREE.CylinderGeometry(0.65/2, 0.45/2, 1/2, 64/2, 1/2, false),
+			new THREE.MeshBasicMaterial({ 
+				color: 0xf2c75c,
+				opacity:0.5,
+				transparent:true,
+				map:texture2,		
+				side: THREE.DoubleSide
+			})
+			);
+
+
+		cylinderMeshExt1[n1].position.copy(cubePositions1[n1]);
+		cylinderMeshInt1.position.copy(cubePositions1[n1]);
+		
+		cylinderMeshExt1.castShadow = false;
+		sceneGroup2.add( cylinderMeshExt1[n1] );
+		sceneGroup2.add( cylinderMeshInt1 );
+		
+		cylinderMeshArrayExt1[n1] = cylinderMeshExt1[n1];
+		cylinderMeshArrayInt1[n1] = cylinderMeshInt1;
+	}
+
+}
+
+function update()
+{
+
+	keyboard.update();
+	if ( arToolkitSource.ready !== false )
+		arToolkitContext.update( arToolkitSource.domElement );
+
+	if (markerRootB.visible )
+	{
+		renderer.clippingPlanes[0].setFromNormalAndCoplanarPoint(
+			new THREE.Vector3(0,1,0).applyQuaternion(sceneGroup.getWorldQuaternion()),
+			sceneGroup.getWorldPosition()
+			);
+		
+		let p = parabolicPath( markerRootA.getWorldPosition(), markerRootB.getWorldPosition(), (totalTime/1) % 4 - 1 );
+
+		ballMesh.position.copy( p );
+
+		ballMesh.rotation.z += 0.1
+		
+	}
+
+}
+
+function parabolaEvaluate(p0, p1, p2, t)
+{
+	return ( 0.5*(p0 - 2*p1 + p2) )*t*t + ( -0.5*(3*p0 - 4*p1 + p2) )*t + ( p0 );
+
+}
+
+function parabolicPath( pointStart, pointEnd,time )
+{
+	
+	let pointMiddle = new THREE.Vector3().addVectors( pointStart, pointEnd ).multiplyScalar(0.5).add( new THREE.Vector3(0,2,0) );
+
+
+	renderer.setClearColor(0xff0000, smallR);
+
+
+	if (keyboard.isKeyPressed("Q")){
+		let drunk = new THREE.Mesh(
+			new THREE.CylinderGeometry(0.65/2, 0.45/2, 0.9, 64/2, 1/2, false),
+			new THREE.MeshBasicMaterial({ 
+				color: 0xff0000,
+				opacity:1,
+				transparent:true,	
+				side: THREE.DoubleSide
+			})
+			);
+	if (powerR>0.7 && powerR<0.9 && angleR>-0.4 && angleR<-0.2){ //2
+		drunk.position.copy(cubePositions[2]);
+		sceneGroup1.add(drunk);
+		cylinderMeshArrayExt[2] = drunk;
+		redArr[0]=false;
+		redy();
+	}
+	
+	if (angleR>0.4 && angleR<0.6 && powerR< 1.1 && powerR>0.9){
+		drunk.position.copy(cubePositions[1]);
+		sceneGroup1.add(drunk);
+		cylinderMeshArrayExt[1] = drunk;
+		redArr[1]=false;
+		redy();
+	}
+	if(powerR<0.6 && powerR>0.4 &&angleR< 0.1 && angleR>-0.1){
+		drunk.position.copy(cubePositions[0]);
+		sceneGroup1.add(drunk);
+		cylinderMeshArrayExt[0] = drunk;
+		redArr[2]=false;
+		redy();
+	}
+	if(powerR<1.6 && powerR>1.4&&angleR< 0.1 && angleR>-0.1){
+		drunk.position.copy(cubePositions[4]);
+		sceneGroup1.add(drunk);
+		cylinderMeshArrayExt[4] = drunk;
+		redArr[3]=false;
+		redy();
+	}
+	if(powerR >1.9 && powerR< 2.1 && angleR>-0.7 && angleR < -0.5){
+		drunk.position.copy(cubePositions[5]);
+		sceneGroup1.add(drunk);
+		cylinderMeshArrayExt[5] = drunk;
+		redArr[4]=false;
+		redy();
+	}
+	if (powerR > 1.1 && powerR < 1.3 && angleR>0.9 && angleR<1.1){
+		drunk.position.copy(cubePositions[3]);
+		sceneGroup1.add(drunk);
+		cylinderMeshArrayExt[3] = drunk;
+		redArr[5]=false;
+		redy();
+	}
+	// if (redArr[0]==false && redArr[1]==false&&redArr[2]==false&&redArr[3]==false&&redArr[4]==false&&redArr[5]){
+	// 	renderer.setClearColor (0xff0000, 1);
+	// }
+	// if (blueArr[0]==false && blueArr[1]==false&&blueArr[2]==false&&blueArr[3]==false&&blueArr[4]==false&&blueArr[5]){
+	// 	renderer.setClearColor (0x0000ff, 1);
+	// }
+	return new THREE.Vector3(
+		parabolaEvaluate( pointStart.x, pointMiddle.x, pointEnd.x*powerR, time ),
+		parabolaEvaluate( pointStart.y, pointMiddle.y, pointEnd.y, time ),
+		parabolaEvaluate( pointStart.z, pointMiddle.z, pointEnd.z+angleR, time )
+
+		); 
+}
+
+if (keyboard.isKeyPressed("P")){
+	let drunk = new THREE.Mesh(
+		new THREE.CylinderGeometry(0.65/2, 0.45/2, 0.9, 64/2, 1/2, false),
+		new THREE.MeshBasicMaterial({ 
+			color: 0x0000ff,
+			opacity:1,
+			transparent:true,	
+			side: THREE.DoubleSide
+		})
+		);
+	if (powerB>0.7 && powerB<0.9 && angleB>-0.4 && angleB<-0.2){ //2
+		drunk.position.copy(cubePositions1[2]);
+		sceneGroup2.add(drunk);
+		cylinderMeshArrayExt1[2] = drunk;
+		blueArr[2]=false;
+		bluey();
+	}
+	
+	if (angleB>0.4 && angleB<0.6 && powerB< 0.4 && powerB>0.2){
+		drunk.position.copy(cubePositions1[1]);
+		sceneGroup2.add(drunk);
+		cylinderMeshArrayExt1[1] = drunk;
+		blueArr[1]=false;
+		bluey();
+	}
+	if(powerB<0.4 && powerB>0.2 &&angleB< 0.1 && angleB>-0.1){
+		drunk.position.copy(cubePositions1[0]);
+		sceneGroup2.add(drunk);
+		cylinderMeshArrayExt1[0] = drunk;
+		blueArr[0]=false;
+		bluey();
+	}
+	if(powerB<1.6 && powerB>1.4&&angleB< 0.1 && angleB>-0.1){
+		drunk.position.copy(cubePositions1[4]);
+		sceneGroup2.add(drunk);
+		cylinderMeshArrayExt1[4] = drunk;
+		blueArr[4]=false;
+		bluey();
+	}
+	if(powerB >1.6 && powerB< 1.8 && angleB>-0.7 && angleB < -0.5){
+		drunk.position.copy(cubePositions1[5]);
+		sceneGroup2.add(drunk);
+		cylinderMeshArrayExt1[5] = drunk;
+		blueArr[5]=false;
+		bluey();
+	}
+	if (powerB > 1.1 && powerB < 1.3 && angleB>0.9 && angleB<1.1){
+		drunk.position.copy(cubePositions1[3]);
+		sceneGroup2.add(drunk);
+		cylinderMeshArrayExt1[3] = drunk;
+		blueArr[3]=false;
+		bluey();
+	}
+	// if (!redArr[0]){
+	// 	renderer.setClearColor (0xff0000, 1);
+	// }
+	// if (!blueArr[0]){
+	// 	renderer.setClearColor (0x0000ff, 1);
+	// }
+	
+	return new THREE.Vector3(
+		parabolaEvaluate( pointEnd.x, pointMiddle.x, pointStart.x*powerB, time ),
+		parabolaEvaluate( pointEnd.y, pointMiddle.y, pointStart.y, time ),
+		parabolaEvaluate( pointEnd.z, pointMiddle.z, pointStart.z+angleB, time )
+		); 
+}
+
+else {
+	return new THREE.Vector3(0,0,0);
+}
+}
+
+function render()
+{
+	renderer.render( scene, camera );
+}
+
+function animate()
+{
+	requestAnimationFrame(animate);
+	deltaTime = clock.getDelta();
+	totalTime += deltaTime;
+	update();
+	render();
+}
+function bluey(){
+	for(let i = 0; i<6; i++){
+		if(!blueArr[i]){
+			smallB = smallB +0.16666; 
+		}
+
+	}
+}
+
+function redy(){
+	for(var i = 0; i<6; i++){
+		if(!redArr[i]){
+			smallR = smallR + 0.1666; 
+		}
+
+	}
+}
+
+
+function redy(){
+
+}
+
+</script>
+
+</body>
+</html>

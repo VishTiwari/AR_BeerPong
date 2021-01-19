@@ -50,7 +50,7 @@ Scope for further investigation:
 -Making the screen change colors
 -Displaying an end game slide
 -Playing on your phone
--Using bounding boxes to recognize object collision
+-Using bounding boxes to recognize object collision 
 
 
 
